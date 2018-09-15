@@ -8,5 +8,7 @@ CORS(app,supports_credentials=True)
 #app.config.from_object('settings')
 
 from assetscube.auth import bp_acauth, aclogin
+from assetscube.callback import bp_accallbk, callbackurifun
 
 app.register_blueprint(bp_acauth)
+app.register_blueprint(bp_accallbk)

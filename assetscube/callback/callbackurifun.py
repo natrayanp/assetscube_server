@@ -63,7 +63,7 @@ def clbk_singup_handler(callback_data):
     else:
         # Do user registration here
         # Response data from nawalcube
-        #ImmutableMultiDict([('type', 'signup'), ('regdata', '{uid:BgZEeC2nyzNeOZmHeTdASW4QsrB3,email:k.ananthi@gmail.com}'), ('msg', '')])
+        #ImmutableMultiDict([('type', 'signup'), ('regdata', '{uid:BgZEeC2nyzNeOZmHeTdASW4QsrB3,email:k.ananthi@gmail.com}'), ('msg', '')])@
         regsd = callback_data["regdata"]
         email = regsd["email"]
         # firebase auth setup

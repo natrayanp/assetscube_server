@@ -10,6 +10,7 @@ import pkgutil
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import auth
+import json
 
 
 
@@ -57,15 +58,21 @@ def callback_handler(callback_data):
     return url
 
 def clbk_singup_handler(callback_data):
+    print("signup handler")
     if callback_data["regdata"] == '401':
         # show error page
+        print("signup handler error")
         return "http://localhost:4201/noti?type=signup&regdata=401&msg="+callback_data["msg"]
     else:
         # Do user registration here
         # Response data from nawalcube
         #ImmutableMultiDict([('type', 'signup'), ('regdata', '{uid:BgZEeC2nyzNeOZmHeTdASW4QsrB3,email:k.ananthi@gmail.com}'), ('msg', '')])@
-        regsd = callback_data["regdata"]
+        print("signup handler success :)")
+        regsd = json.loads(callback_data["regdata"])        
+        print(regsd)
+        print(type(regsd))
         email = regsd["email"]
+        print(email)
         # firebase auth setup
         try:
             print('inside try')
@@ -79,13 +86,30 @@ def clbk_singup_handler(callback_data):
         else:
             pass
 
-        print('app ready')        
-        user = auth.create_user(email=email,app=default_app)
-        print('Successfully fetched user data: {0}'.format(user.uid))
+        print('app ready')
+        try: 
+            user = auth.create_user(email=email,app=default_app)
+        except auth.AuthError as e:
+            #e.code == "USER_CREATE_ERROR":
+            print("inside callback singup success")
+            return redirect("http://localhost:4201/noti?type=signup&regdata=401&msg="+str(e), code=302)
+            ''''
+            print('inside Auth error')
+            print(e)
+            print(type(e))
+            print("-------")
+            print(e.code)
+            print("-------222")
+            print(e.detail)
+            print(e.args)
+            print(e.message)
 
-        print("inside callback singup success")
+            print('Successfully fetched user data: {0}'.format(user.uid))
+
+        
         
 
         
     
-    return "ok"
+            return "ok"
+            '''

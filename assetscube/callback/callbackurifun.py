@@ -19,15 +19,45 @@ def callback():
     if request.method=="OPTIONS":
             print("inside callback options")
             response = "inside callback options"
-            return make_response(jsonify(response), 200)
+            print(request.headers)
+            response1 = make_response(jsonify(response))
+            response1.headers['Origin'] = "http://localhost:5000"
+            response1.headers['Access-Control-Allow-Origin'] = "*"
+            response1.headers['Access-Control-Allow-Methods'] = "GET, POST, PATCH, PUT, DELETE, OPTIONS"
+            response1.headers['Access-Control-Allow-Headers'] = "Origin, entityid, Content-Type, X-Auth-Token, countryid"
+            
+            print(response1.headers)
+            
+            return response1
+            #return make_response(jsonify(response), 200)
 
     elif request.method=="GET":
         print("inside callback get")
         params = request.args
         print(params)
-        res_to_send = callback_handler(params)
-        return redirect(res_to_send, 302)
+        callbk_proc_data = callback_handler(params)
+        typ = callbk_proc_data["typ"]
+        regdata = callbk_proc_data["regdata"]
+        msg = callbk_proc_data["msg"]
+        print(typ, regdata, msg)
+        print(settings.MYNOTIPG[settings.LIVE])
+ 
+        response1 = make_response(redirect(settings.MYNOTIPG[settings.LIVE]+"?type="+typ+"&regdata="+regdata+"&msg="+msg, code=302))
+        response1.headers['Origin'] = "http://localhost:5000"
+        del response1.headers['entityid']
+        del response1.headers['coutnrycode']
+        response1.headers['Access-Control-Allow-Origin'] = "*"
+        response1.headers['Access-Control-Allow-Methods'] = "GET, POST, PATCH, PUT, DELETE, OPTIONS"
+        response1.headers['Access-Control-Allow-Headers'] = "Origin, entityid, Content-Type, X-Auth-Token, countryid"
+        print(response1.headers)
+        return response1
+        #return redirect(settings.MYNOTIPG[settings.LIVE]+"?type="+typ+"&regdata="+regdata+"&msg="+msg, code=302)
+
+        
+
+
         '''
+        #
         if res_to_send == 'success':
             resps = make_response(jsonify(resp), 200)
             #resps = make_response(jsonify(response), 200 if res_to_send == 'success' else 400)
@@ -36,7 +66,6 @@ def callback():
         
         return resps
         '''
-
     elif request.method=="POST":
         print("inside callback post")
         res_to_send, response = callback_handler(callback_data)
@@ -52,16 +81,18 @@ def callback():
 def callback_handler(callback_data):
     print(callback_data["type"])
     if callback_data["type"] == "signup":
-        url = clbk_singup_handler(callback_data)
+        return clbk_singup_handler(callback_data)
     elif callback_data["type"] == "code":
-        clbk_auth_handler(callback_data)
-    return url
+        #callbk_proc_data, status = clbk_auth_handler(callback_data)
+        pass
+    return  None, None
 
 def clbk_singup_handler(callback_data):
     print("signup handler")
     if callback_data["regdata"] == '401':
         # show error page
         print("signup handler error")
+
         return "http://localhost:4201/noti?type=signup&regdata=401&msg="+callback_data["msg"]
     else:
         # Do user registration here
@@ -92,8 +123,20 @@ def clbk_singup_handler(callback_data):
         except auth.AuthError as e:
             #e.code == "USER_CREATE_ERROR":
             print("inside callback singup success")
-            return redirect("http://localhost:4201/noti?type=signup&regdata=401&msg="+str(e), code=302)
-            ''''
+            callbk_proc_data ={
+                "typ": "signup",
+                "regdata": "401",
+                "msg": email + " registered failed.  Please retry.  If problem persists, please conatact support"
+            }
+        else:
+            callbk_proc_data = {
+                "typ": "signup",
+                "regdata": "200",
+                "msg": email + " registered successfully.  Please reset password before first login"
+            }
+        
+        return  callbk_proc_data
+        ''''
             print('inside Auth error')
             print(e)
             print(type(e))
@@ -112,4 +155,4 @@ def clbk_singup_handler(callback_data):
         
     
             return "ok"
-            '''
+        '''

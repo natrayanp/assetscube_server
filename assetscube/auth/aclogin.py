@@ -19,7 +19,12 @@ def signup():
     if request.method=="OPTIONS":
             print("inside signup options")
             response = "inside signup options"
-            return make_response(jsonify(response), 200)
+            response1 = make_response(jsonify(response))
+            response1.headers['Access-Control-Allow-Origin'] = "*"
+            response1.headers['Access-Control-Allow-Methods'] = "GET, POST, PATCH, PUT, DELETE, OPTIONS"
+            response1.headers['Access-Control-Allow-Headers'] = "Origin, entityid, Content-Type, X-Auth-Token"
+            print(response1.headers)
+            return response1
 
     elif request.method=="GET":
         res_to_send, response = signup_common()

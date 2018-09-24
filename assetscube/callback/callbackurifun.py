@@ -36,6 +36,15 @@ def callback():
         params = request.args
         print(params)
         callbk_proc_data = callback_handler(params)
+        print(callbk_proc_data)
+        print(type(callbk_proc_data))
+        '''
+                callbk_proc_data ={
+                "typ": "signup",
+                "regdata": "401",
+                "msg": email + " registered failed.  Please retry.  If problem persists, please conatact support"
+            }   
+        '''
         typ = callbk_proc_data["typ"]
         regdata = callbk_proc_data["regdata"]
         msg = callbk_proc_data["msg"]
@@ -92,8 +101,14 @@ def clbk_singup_handler(callback_data):
     if callback_data["regdata"] == '401':
         # show error page
         print("signup handler error")
+        callbk_proc_data ={
+                "typ": "signup",
+                "regdata": "401",
+                "msg": email + " registered failed.  Please retry.  If problem persists, please conatact support"
+            }        
+        return  callbk_proc_data
 
-        return "http://localhost:4201/noti?type=signup&regdata=401&msg="+callback_data["msg"]
+        #return "http://localhost:4201/noti?type=signup&regdata=401&msg="+callback_data["msg"]
     else:
         # Do user registration here
         # Response data from nawalcube

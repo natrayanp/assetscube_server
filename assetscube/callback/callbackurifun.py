@@ -13,7 +13,6 @@ from firebase_admin import auth
 import json
 
 
-
 @bp_accallbk.route("/callback",methods=["GET","POST","OPTIONS"])
 def callback():
     if request.method=="OPTIONS":
@@ -76,8 +75,12 @@ def callback():
         return resps
         '''
     elif request.method=="POST":
-        print("inside callback post")
-        res_to_send, response = callback_handler(callback_data)
+        print("inside callback POST")
+        payload = request.get_json()
+        print("payload")
+        print(payload)
+        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        res_to_send, response = callback_handler(payload)
 
         if res_to_send == 'success':
             resps = make_response(jsonify(response), 200)
@@ -88,38 +91,46 @@ def callback():
         return resps    
 
 def callback_handler(callback_data):
-    print(callback_data["type"])
-    if callback_data["type"] == "signup":
-        return clbk_singup_handler(callback_data)
-    elif callback_data["type"] == "code":
+    if callback_data["callbkfrm"] == "nawalcbue":
+        return ncallbk_handler(callback_data)
+    elif callback_data["callbkfrm"] == "upstox":
         #callbk_proc_data, status = clbk_auth_handler(callback_data)
         pass
     return  None, None
 
-def clbk_singup_handler(callback_data):
-    print("signup handler")
+def ncallbk_handler(callback_data):
+    if callback_data["type"] == "signup":
+        return ncclbk_singup_handler(callback_data)
+
+
+def ncclbk_singup_handler(callback_data):
+    print("inside ncclbk_singup_handler function")
+    s = 0
+    f = None
+    t = None #message to front end
+
+    print("nc signup handler")
     if callback_data["regdata"] == '401':
         # show error page
         print("signup handler error")
         callbk_proc_data ={
                 "typ": "signup",
                 "regdata": "401",
-                "msg": email + " registered failed.  Please retry.  If problem persists, please conatact support"
+                "msg": "Registered failed.  Please retry.  If problem persists, please conatact support"
             }        
-        return  callbk_proc_data
-
-        #return "http://localhost:4201/noti?type=signup&regdata=401&msg="+callback_data["msg"]
+        return "fail", callbk_proc_data
     else:
-        # Do user registration here
-        # Response data from nawalcube
-        #ImmutableMultiDict([('type', 'signup'), ('regdata', '{uid:BgZEeC2nyzNeOZmHeTdASW4QsrB3,email:k.ananthi@gmail.com}'), ('msg', '')])@
-        print("signup handler success :)")
-        regsd = json.loads(callback_data["regdata"])        
-        print(regsd)
-        print(type(regsd))
-        email = regsd["email"]
-        print(email)
-        # firebase auth setup
+        # Please register user and confirm
+        
+        #Get data from nawalcube
+        r = requests.post(url, headers=headers, data=json.dumps(payload))
+        
+        
+        email = callback_data["email"]
+
+
+
+
         try:
             print('inside try')
             default_app = firebase_admin.get_app('acfbapp')
@@ -131,8 +142,9 @@ def clbk_singup_handler(callback_data):
             default_app = firebase_admin.initialize_app(credential=cred,name='acfbapp')
         else:
             pass
-
+        
         print('app ready')
+        
         try: 
             user = auth.create_user(email=email,app=default_app)
         except auth.AuthError as e:
@@ -151,23 +163,3 @@ def clbk_singup_handler(callback_data):
             }
         
         return  callbk_proc_data
-        ''''
-            print('inside Auth error')
-            print(e)
-            print(type(e))
-            print("-------")
-            print(e.code)
-            print("-------222")
-            print(e.detail)
-            print(e.args)
-            print(e.message)
-
-            print('Successfully fetched user data: {0}'.format(user.uid))
-
-        
-        
-
-        
-    
-            return "ok"
-        '''

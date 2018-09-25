@@ -3,9 +3,9 @@
 LIVE = 1
 
 NCAPPID = ['','ce92aa8e9ae4d53acd7ce5eabca48f02fe556a7cee346c2c233ff3c2e570048c']
-NCREGURL = ['','http://localhost:8080/ncappsignup']
+NCREGURL = ['','http://localhost:8080/ncappsingupres']
 MYHOMEPG = ['','http://localhost:4201']
-MYREDIRURI = ['','http://localhost:4201/noti']
+MYREDIRURI = ['','http://localhost:4201/noti/nc']
 MYNOTIPG = ["","http://localhost:4201/noti"]
 
 FBSERVICEAC = {

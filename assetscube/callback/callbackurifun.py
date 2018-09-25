@@ -4,14 +4,14 @@ from flask import redirect, request,make_response, jsonify
 from assetscube.common import dbfunc as db
 from assetscube.common import error_logics as errhand
 from assetscube.common import jwtfuncs as jwtf
-from assetscube.common import settings
+from assetscube.common import settings as settings
 from datetime import datetime
 import pkgutil
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import auth
 import json
-
+import requests
 
 @bp_accallbk.route("/callback",methods=["GET","POST","OPTIONS"])
 def callback():
@@ -80,6 +80,10 @@ def callback():
         print("payload")
         print(payload)
         print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        entityid = request.headers.get("entityid", None)
+        cntryid = request.headers.get("countryid", None)
+        payload["entityid"] = entityid
+        payload["cntryid"] = cntryid 
         res_to_send, response = callback_handler(payload)
 
         if res_to_send == 'success':
@@ -91,11 +95,15 @@ def callback():
         return resps    
 
 def callback_handler(callback_data):
-    if callback_data["callbkfrm"] == "nawalcbue":
+    print("inside callback_handler")
+    print(callback_data)
+    print(callback_data["callbkfrm"])
+    if callback_data["callbkfrm"] == "nawalcube":
+        print("Inside nawalcube")
         return ncallbk_handler(callback_data)
     elif callback_data["callbkfrm"] == "upstox":
         #callbk_proc_data, status = clbk_auth_handler(callback_data)
-        pass
+        print("upstox")
     return  None, None
 
 def ncallbk_handler(callback_data):
@@ -123,14 +131,11 @@ def ncclbk_singup_handler(callback_data):
         # Please register user and confirm
         
         #Get data from nawalcube
-        r = requests.post(url, headers=headers, data=json.dumps(payload))
+        headers = {"entityid":callback_data["entityid"], "countryid": callback_data["countryid"]}
+        req_payload = {"userauthtkn": callback_data["regdata"], "appid": settings.NCAPPID[settings.LIVE],"appkey":settings.NCAPPKEY[settings.LIVE]}
+        r = requests.post(settings.NCSIGNUPDATAFETCHURL[settings.LIVE], headers=headers, data=json.dumps(req_payload))
+        print(r)
         
-        
-        email = callback_data["email"]
-
-
-
-
         try:
             print('inside try')
             default_app = firebase_admin.get_app('acfbapp')

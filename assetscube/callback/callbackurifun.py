@@ -18,14 +18,14 @@ def callback():
     if request.method=="OPTIONS":
             print("inside callback options")
             response = "inside callback options"
-            print(request.headers)
+            #print(request.headers)
             response1 = make_response(jsonify(response))
-            response1.headers['Origin'] = "http://localhost:5000"
-            response1.headers['Access-Control-Allow-Origin'] = "*"
-            response1.headers['Access-Control-Allow-Methods'] = "GET, POST, PATCH, PUT, DELETE, OPTIONS"
-            response1.headers['Access-Control-Allow-Headers'] = "Origin, entityid, Content-Type, X-Auth-Token, countryid"
+            #response1.headers['Origin'] = "http://localhost:5000"
+            #response1.headers['Access-Control-Allow-Origin'] = "*"
+            #response1.headers['Access-Control-Allow-Methods'] = "GET, POST, PATCH, PUT, DELETE, OPTIONS"
+            #response1.headers['Access-Control-Allow-Headers'] = "Origin, entityid, Content-Type, X-Auth-Token, countryid"
             
-            print(response1.headers)
+            #print(response1.headers)
             
             return response1
             #return make_response(jsonify(response), 200)
@@ -77,20 +77,20 @@ def callback():
     elif request.method=="POST":
         print("inside callback POST")
         payload = request.get_json()
-        print("payload")
+        print("payload 11111111")
         print(payload)
         print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         entityid = request.headers.get("entityid", None)
-        cntryid = request.headers.get("countryid", None)
+        countryid = request.headers.get("countryid", None)
         payload["entityid"] = entityid
-        payload["cntryid"] = cntryid 
-        res_to_send, response = callback_handler(payload)
+        payload["countryid"] = countryid 
+        res_status, res_to_send = callback_handler(payload)
 
-        if res_to_send == 'success':
-            resps = make_response(jsonify(response), 200)
+        if res_status == 'success':
+            resps = make_response(jsonify(res_to_send), 200)
             #resps = make_response(jsonify(response), 200 if res_to_send == 'success' else 400)
         else:
-            resps = make_response(jsonify(response), 400)
+            resps = make_response(jsonify(res_to_send), 400)
         
         return resps    
 
@@ -116,7 +116,7 @@ def ncclbk_singup_handler(callback_data):
     s = 0
     f = None
     t = None #message to front end
-
+    rec_status ="fail"
     print("nc signup handler")
     if callback_data["regdata"] == '401':
         # show error page
@@ -133,38 +133,63 @@ def ncclbk_singup_handler(callback_data):
         #Get data from nawalcube
         headers = {"entityid":callback_data["entityid"], "countryid": callback_data["countryid"]}
         req_payload = {"userauthtkn": callback_data["regdata"], "appid": settings.NCAPPID[settings.LIVE],"appkey":settings.NCAPPKEY[settings.LIVE]}
+        print("###########################")
+        print(req_payload)
+        print("###########################")
         r = requests.post(settings.NCSIGNUPDATAFETCHURL[settings.LIVE], headers=headers, data=json.dumps(req_payload))
-        print(r)
+        nc_usr_data = json.loads(r.content)
+        print(json.loads(r.content))
+
+
+        if nc_usr_data["status"] == "success":
+            nc_email = nc_usr_data["emailid"]
+            nc_userauthtkn = nc_usr_data["userauthtkn"]
+            nc_usrid = nc_usr_data["userid"]
+
+            try:
+                print('inside try')
+                default_app = firebase_admin.get_app('acfbapp')
+                print('about inside try')
+            except ValueError:
+                print('inside value error')
+                #cred = credentials.Certificate(os.path.dirname(__file__)+'/serviceAccountKey.json')
+                cred = credentials.Certificate(settings.FBSERVICEAC)
+                default_app = firebase_admin.initialize_app(credential=cred,name='acfbapp')
+            else:
+                pass
+            
+            print('app ready')
         
-        try:
-            print('inside try')
-            default_app = firebase_admin.get_app('acfbapp')
-            print('about inside try')
-        except ValueError:
-            print('inside value error')
-            #cred = credentials.Certificate(os.path.dirname(__file__)+'/serviceAccountKey.json')
-            cred = credentials.Certificate(settings.FBSERVICEAC)
-            default_app = firebase_admin.initialize_app(credential=cred,name='acfbapp')
-        else:
-            pass
-        
-        print('app ready')
-        
-        try: 
-            user = auth.create_user(email=email,app=default_app)
-        except auth.AuthError as e:
-            #e.code == "USER_CREATE_ERROR":
+            try: 
+                user = auth.create_user(email=nc_email,app=default_app)
+            except auth.AuthError as e:
+                print(auth.ErrorInfo)
+                #e.code == "USER_CREATE_ERROR":
+                print(e.code)
+                print(e.detail)
+                print("Auth error while creating user")
+                s = 100
+            except ValueError as e:
+                print("value error while creating user")
+                s = 100
+            else:
+                print(user.uid)
+                print(format(user))
+
             print("inside callback singup success")
+        if s > 0:
+            rec_status ="fail"
             callbk_proc_data ={
                 "typ": "signup",
                 "regdata": "401",
-                "msg": email + " registered failed.  Please retry.  If problem persists, please conatact support"
+                "msg": nc_email + " registered failed.  Please retry.  If problem persists, please conatact support"
             }
         else:
+            rec_status ="success"
             callbk_proc_data = {
                 "typ": "signup",
                 "regdata": "200",
-                "msg": email + " registered successfully.  Please reset password before first login"
+                "msg": nc_email + " registered successfully.  Please reset password before first login"
             }
         
-        return  callbk_proc_data
+        return  rec_status, callbk_proc_data

@@ -23,4 +23,10 @@ FBSERVICEAC = {
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-spvoh%40natauth-c532d.iam.gserviceaccount.com"
 }
 
+INSTALLDATA = [{},
+{
+    "entityid": "ASSETSCUBE",
+    "countryid": "IN"
+}]
+
 # gunicorn --reload --bind=127.0.0.1:8081 assetscube:app

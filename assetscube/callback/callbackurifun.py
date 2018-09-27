@@ -116,6 +116,7 @@ def ncclbk_singup_handler(callback_data):
     s = 0
     f = None
     t = None #message to front end
+    usrmsg = None
     rec_status ="fail"
     print("nc signup handler")
     if callback_data["regdata"] == '401':
@@ -146,6 +147,7 @@ def ncclbk_singup_handler(callback_data):
             nc_userauthtkn = nc_usr_data["userauthtkn"]
             nc_usrid = nc_usr_data["userid"]
 
+            #initialise the Firebase app
             try:
                 print('inside try')
                 default_app = firebase_admin.get_app('acfbapp')
@@ -155,41 +157,70 @@ def ncclbk_singup_handler(callback_data):
                 #cred = credentials.Certificate(os.path.dirname(__file__)+'/serviceAccountKey.json')
                 cred = credentials.Certificate(settings.FBSERVICEAC)
                 default_app = firebase_admin.initialize_app(credential=cred,name='acfbapp')
+                s, f, t= errhand.get_status(s, 0, f, "Firebase app initialised", t, "no")
             else:
                 pass
             
-            print('app ready')
-        
-            try: 
-                user = auth.create_user(email=nc_email,app=default_app)
-            except auth.AuthError as e:
-                print(auth.ErrorInfo)
-                #e.code == "USER_CREATE_ERROR":
-                print(e.code)
-                print(e.detail)
-                print("Auth error while creating user")
-                s = 100
-            except ValueError as e:
-                print("value error while creating user")
-                s = 100
-            else:
-                print(user.uid)
-                print(format(user))
+            print('app initialisation completed')
+            #TO check if the email already exists
+            useridex = True
+            if s <= 0:
+                try: 
+                    user = auth.get_user_by_email(nc_email,app=default_app)
+                    print('Successfully fetched user data: {0}'.format(user.uid))                    
+                except Exception as inst:
+                    print(inst.args)
+                    print(inst)
+                    s, f, t= errhand.get_status(s, 0, f, "Firebase app user details fetch failed", t, "no")
+                    s, f, t= errhand.get_status(s, 100, f, "User registration failed.  Please cotact support", t, "yes")
+                else:
+                    pass
+                    if user.uid != None or user.uid != "":
+                        useridex = False
+                    print("user details fetch successful")
+                    s, f, t= errhand.get_status(s, 0, f, " email already registered.", t, "yes")
+                    usrmsg = "email already registered."
 
+            #TO check if the email already exists
+            if s <= 0 and useridex:
+                try: 
+                    user = auth.create_user(email=nc_email,app=default_app)
+                except auth.AuthError as e:
+                    print(auth.ErrorInfo)
+                    #e.code == "USER_CREATE_ERROR":
+                    print(e.code)
+                    print(e.detail)
+                    print("Auth error while creating user")
+                    s = 100
+                except ValueError as e:
+                    print("value error while creating user")
+                    s, f, t= errhand.get_status(s, 0, f, "Firebase app user details fetch failed", t, "no")
+                    s, f, t= errhand.get_status(s, 100, f, "User registration failed.  Please cotact support [ac error]", t, "yes")
+                else:
+                    print(user.uid)
+                    print(format(user))
+                    s, f, t= errhand.get_status(s, 0, f, "registeration successful.", t, "no")
             print("inside callback singup success")
+
+        else:
+            s, f, t= errhand.get_status(s, 100, f, "User registration failed.  Please contact support [nc fetch].", t, "yes")
+
         if s > 0:
             rec_status ="fail"
+            usrmsg = " registered failed.  Please retry.  If problem persists, please conatact support"
             callbk_proc_data ={
                 "typ": "signup",
                 "regdata": "401",
-                "msg": nc_email + " registered failed.  Please retry.  If problem persists, please conatact support"
+                "msg": nc_email + usrmsg
             }
         else:
             rec_status ="success"
+            if usrmsg == None:
+                 usrmsg = " registered successfully.  Please reset password before first login"
             callbk_proc_data = {
                 "typ": "signup",
                 "regdata": "200",
-                "msg": nc_email + " registered successfully.  Please reset password before first login"
+                "msg": nc_email + usrmsg
             }
         
         return  rec_status, callbk_proc_data

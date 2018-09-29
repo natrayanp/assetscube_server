@@ -1,0 +1,50 @@
+
+-- schema for the application
+
+CREATE SCHEMA acusr;
+
+
+---Login table
+CREATE TABLE acusr.userlogin (
+	userid 		               varchar(100) NOT NULL CONSTRAINT userid PRIMARY KEY,
+	username    		       varchar(100),  --PAN name
+    useremail                  varchar(100) NOT NULL,
+    usertype			       varchar(2) NOT NULL, --> (R - Read only, W- Write)
+    usercusttype               varchar(10) NOT NULL, --> ()
+    userstatus		           varchar(2) NOT NULL, --> (A- Active, B-Blocked , I-Deleteduser)
+    userstatlstupdt	           timestamptz NOT NULL,
+    octime			           timestamptz NOT NULL,
+    lmtime			           timestamptz NOT NULL,
+    entityid                   varchar(20) NOT NULL,
+    countryid                  varchar(10) NOT NULL
+    );
+
+-- Login history
+CREATE TABLE acusr.loginh (
+    userid 		               varchar(100) NOT NULL REFERENCES ncusr.userlogin(userid),
+    ipaddress                  varchar(25),
+    sessionid                  varchar(100),
+    site                       varchar(100),  --> nc - Nawalcube, dv - developer, au - auth
+    logintime                  timestamptz NOT NULL, 
+    logoutime                  timestamptz ,
+    entityid                   varchar(20) NOT NULL,
+    countryid                  varchar(10) NOT NULL
+);
+
+
+
+-- User authentication token
+CREATE TABLE acusr.linkedapps (
+    userid 		               varchar(100) NOT NULL REFERENCES ncusr.userlogin(userid),
+    lnk_entity                 text NOT NULL,
+    lnk_userid                 varchar(100) NOT NULL,
+    lnk_email                  varchar(100),
+    lnk_authtkn                varchar(400),
+    lnk_tknexpiry              timestamptz,
+    lnkstatus                  varchar(2) NOT NULL, --> (L - Linked, D- Delinked)
+    entityid                   varchar(20) NOT NULL,
+    countryid                  varchar(10) NOT NULL,
+    octime			           timestamptz NOT NULL,
+    lmtime			           timestamptz NOT NULL,
+    CONSTRAINT unq_comb_uauth UNIQUE (userid,appid) 
+);

@@ -2,8 +2,8 @@
 # UAT = 1
 LIVE = 1
 
-NCAPPID = ['','ce92aa8e9ae4d53acd7ce5eabca48f02fe556a7cee346c2c233ff3c2e570048c']
-NCAPPKEY = ['','adc8368812976301d22b793c7d86dfa6']
+NCAPPID = ['','6b43d76a65f77bf29f3056c3f05715b7b92f5b03ddb5faa3998d585b3038ec04']
+NCAPPKEY = ['','34b399082e12715c29b63a6ec83e1215']
 NCREGURL = ['','http://localhost:8080/ncappsignup']
 NCSIGNUPDATAFETCHURL = ['','http://localhost:8080/ncappfetchfrmtkn']
 MYHOMEPG = ['','http://localhost:4201']

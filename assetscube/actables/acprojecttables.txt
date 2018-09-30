@@ -41,10 +41,10 @@ CREATE TABLE acusr.linkedapps (
     lnk_authtkn                varchar(400),  --> to keep userauthtkn of NC (since AC is trusted app)
     lnk_tknexpiry              timestamptz,
     lnkstatus                  varchar(2) NOT NULL, --> (L - Linked, D- Delinked)
-    entityid                   varchar(20) NOT NULL,
-    countryid                  varchar(10) NOT NULL,
     octime			           timestamptz NOT NULL,
-    lmtime			           timestamptz NOT NULL
+    lmtime			           timestamptz NOT NULL,
+    entityid                   varchar(20) NOT NULL,
+    countryid                  varchar(10) NOT NULL
 );
 
 -- User family liked accounts

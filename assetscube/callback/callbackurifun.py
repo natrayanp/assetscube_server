@@ -131,7 +131,10 @@ def ncclbk_singup_handler(callback_data):
     else:
         # Please register user and confirm        
         #Get data from nawalcube
-        headers = {"entityid":callback_data["entityid"], "countryid": callback_data["countryid"]}
+        entityid = callback_data["entityid"]
+        countryid = callback_data["countryid"]
+
+        headers = {"entityid": entityid, "countryid": countryid}
         req_payload = {"userauthtkn": callback_data["regdata"], "appid": settings.NCAPPID[settings.LIVE],"appkey":settings.NCAPPKEY[settings.LIVE]}
         print("###########################")
         print(req_payload)
@@ -147,7 +150,7 @@ def ncclbk_singup_handler(callback_data):
             nc_tknexpiry = nc_usr_data["tknexpiry"]
             nc_usrid = nc_usr_data["userid"]
             nc_usrname = nc_usr_data["username"]
-
+            uid = None
             #initialise the Firebase app
             try:
                 print('inside try')
@@ -202,7 +205,7 @@ def ncclbk_singup_handler(callback_data):
                 else:
                     print(user.uid)
                     print(format(user))
-                    s, f, t= errhand.get_status(s, 0, f, "registeration successful.", t, "no")
+                    uid = format(user.uid)
             print("inside callback singup success")
 
         else:
@@ -210,13 +213,15 @@ def ncclbk_singup_handler(callback_data):
 
         if s >= 0:
             sav_usr = {
-                "uid": user.uid,
+                "userid": uid,
                 "nc_email" : nc_email,
                 "nc_userauthtkn" : nc_userauthtkn,
                 "nc_tknexpiry" : nc_tknexpiry,
                 "nc_usrid" : nc_usrid,
                 "nc_usrname" : nc_usrname,
-                "nc_entity": "NAWALCUBE"
+                "nc_entity": "NAWALCUBE",
+                "entityid" : entityid,
+                "countryid": countryid
             }
             sav_status, sav_resp_rec = save_usr_details(sav_usr)
             if sav_status != "success":
@@ -236,7 +241,9 @@ def ncclbk_singup_handler(callback_data):
         else:
             rec_status ="success"
             if usrmsg == None:
-                 usrmsg = " registered successfully.  Please reset password before first login"
+                usrmsg = " registered successfully.  Please reset password before first login"
+            else:
+                usrmsg = " registered successfully.  Please reset password before first login. "+ usrmsg
             callbk_proc_data = {
                 "typ": "signup",
                 "regdata": "200",
@@ -261,15 +268,15 @@ def save_usr_details(sav_usr):
     if s <= 0:
         command = cur.mogrify("""
                                 SELECT json_agg(a) FROM (
-                                SELECT userid, username, useremail 
+                                SELECT userid, username, useremail, logintype
                                 FROM ncusr.userlogin
                                 WHERE userstatus NOT IN ('I')
                                 AND (
-                                        userid = %s OR username = %s OR useremail = %s
+                                        userid = %s OR  useremail = %s
                                     )
                                 AND entityid = %s AND countryid = %s
                                 ) as a
-                            """,(uid,username,useremail,entityid,countryid,))
+                            """,(sav_usr["uid"],sav_usr["useremail"],sav_usr["entityid"],sav_usr["countryid"],))
         print(command)
         cur, s1, f1 = db.mydbfunc(con,cur,command)
         s, f, t = errhand.get_status(s, s1, f, f1, t, "no")
@@ -281,23 +288,12 @@ def save_usr_details(sav_usr):
         if s > 0:
             s, f, t = errhand.get_status(s, 200, f, "User data fetch failed with DB error", t, "no")
     print(s,f)
-    pan_payload = None
 
     if s <= 0:
         db_json_rec = cur.fetchall()[0][0]
         print(db_json_rec)
 
-        pyld = {
-                "userid" : userid,
-                "sinupadhaar" : sinupadhaar,
-                "sinuppan" : sinuppan,
-                "sinuparn" : sinuparn,
-                "sinupmobile" : sinupmobile,
-                "sinupemail" : sinupemail,
-                "usercusttype" : usercusttype
-        }
-
-        reg_status, reg_data = allow_regis_user(db_json_rec, pyld)
+        reg_status, reg_data = allow_regis_user(db_json_rec, sav_usr)
         print(reg_status)
         print(reg_data)
         if reg_status == "fail":
@@ -314,8 +310,8 @@ def save_usr_details(sav_usr):
 
     if s <= 0:
         command = cur.mogrify("""
-                    INSERT INTO acusr.userlogin (userid, username, useremail, usertype, userstatus, userstatlstupdt, octime, lmtime, entityid, countryid) 
-                    VALUES (%s,%s,%s,'W','A',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,%s,%s);
+                    INSERT INTO acusr.userlogin (userid, username, useremail, logintype, userstatus, userstatlstupdt, octime, lmtime, entityid, countryid) 
+                    VALUES (%s,%s,%s,'I','A',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,%s,%s);
                     """,(sav_usr["uid"], sav_usr["nc_usrname"], sav_usr["nc_email"],settings.INSTALLDATA[settings.LIVE]["entityid"],settings.INSTALLDATA[settings.LIVE]["countryid"],))
         print(command)
 
@@ -330,7 +326,7 @@ def save_usr_details(sav_usr):
 
     if s <= 0:
         command = cur.mogrify("""
-                    INSERT INTO acusr.linkedapps (userid, lnk_entity, lnk_userid, lnk_email, lnk_authtkn, lnk_tknexpiry, lnkstatus, octime, lmtime, entityid, countryid) 
+                    INSERT INTO acusr.linkedapps (userid, lnk_app, lnk_userid, lnk_email, lnk_authtkn, lnk_tknexpiry, lnkstatus, octime, lmtime, entityid, countryid) 
                     VALUES (%s,%s,%s,%s,%s,%s,'L',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,%s,%s);
                     """,(sav_usr["uid"], sav_usr["nc_entity"], sav_usr["nc_usrid"], sav_usr["nc_email"],sav_usr["nc_userauthtkn"],sav_usr["nc_tknexpiry"], settings.INSTALLDATA[settings.LIVE]["entityid"],settings.INSTALLDATA[settings.LIVE]["countryid"],))
         print(command)
@@ -349,14 +345,13 @@ def save_usr_details(sav_usr):
         db.mydbcloseall(con,cur)
     
     if s<= 0:
-        status = "success"
+        rec_status = "success"
         msg = "User data saved successfully"
     else:
-        status = "fail"
+        rec_status = "fail"
         msg = "User data save failed"
     
-    return status, msg
-
+    return rec_status, msg
 
 
 def allow_regis_user(db_json_rec, pyld):
@@ -374,11 +369,11 @@ def allow_regis_user(db_json_rec, pyld):
                     s, f, t= errhand.get_status(s, 100, f, "Userid Already exists for the Email id", t, "yes")                  
                     stat = "fail"
 
-            if rec['sinupemail'] != '':
-                if rec['sinupemail'] == pyld["sinupemail"]:
+            if rec['useremail'] != '':
+                if rec['useremail'] == pyld["nc_email"]:
                     s, f, t= errhand.get_status(s, 100, f, "Email Already registered", t, "yes")
                     stat = "fail"
-
+            '''
             if stat != "fail":
                 if rec['sinupadhaar'] != '':           
                     if rec['sinupadhaar'] == pyld["sinupadhaar"]:
@@ -400,7 +395,7 @@ def allow_regis_user(db_json_rec, pyld):
                     if rec["usercusttype"] == pyld["usercusttype"]:
                         s, f, t= errhand.get_status(s, 100, f, "Userid Already exists with same Adhaar/PAN/ARN/MOBILE for selected cust type (ie...Resigter as)", t, "yes")
                         stat = "fail"
-
+            '''
     else:
         print("no records satifying the current user inputs")
 

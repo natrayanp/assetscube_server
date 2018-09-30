@@ -261,17 +261,15 @@ def save_usr_details(sav_usr):
     if s <= 0:
         command = cur.mogrify("""
                                 SELECT json_agg(a) FROM (
-                                SELECT l.userid, l.username, l.usertype, l.usercusttype, l.entityid, 
-                                d.sinupusername, d.sinupadhaar, d.sinuppan, d.sinupmobile, d.sinupemail, d.sinuparn
-                                FROM ncusr.userlogin l
-                                LEFT JOIN ncusr.userdetails d ON l.userid = d.userid AND l.entityid = d.entityid
-                                WHERE l.userstatus != 'I'
+                                SELECT userid, username, useremail 
+                                FROM ncusr.userlogin
+                                WHERE userstatus NOT IN ('I')
                                 AND (
-                                        l.userid = %s OR d.sinupadhaar = %s OR d.sinuppan = %s OR sinuparn = %s OR d.sinupmobile = %s OR d.sinupemail = %s
+                                        userid = %s OR username = %s OR useremail = %s
                                     )
-                                AND l.entityid = %s AND l.countryid = %s
+                                AND entityid = %s AND countryid = %s
                                 ) as a
-                            """,(uid,sinupadhaar,sinuppan,sinuparn,sinupmobile,sinupemail,entityid,countryid,) )
+                            """,(uid,username,useremail,entityid,countryid,))
         print(command)
         cur, s1, f1 = db.mydbfunc(con,cur,command)
         s, f, t = errhand.get_status(s, s1, f, f1, t, "no")
@@ -289,38 +287,24 @@ def save_usr_details(sav_usr):
         db_json_rec = cur.fetchall()[0][0]
         print(db_json_rec)
 
-        if db_json_rec:
-            for rec in db_json_rec:
-                if rec['userid'] != '':
-                    if rec['userid'] == userid:
-                        s, f, t= errhand.get_status(s, 100, f, "Userid Already exists", t, "yes")
+        pyld = {
+                "userid" : userid,
+                "sinupadhaar" : sinupadhaar,
+                "sinuppan" : sinuppan,
+                "sinuparn" : sinuparn,
+                "sinupmobile" : sinupmobile,
+                "sinupemail" : sinupemail,
+                "usercusttype" : usercusttype
+        }
 
-                if rec['sinupadhaar'] != '':           
-                    if rec['sinupadhaar'] == sinupadhaar:
-                        s, f, t= errhand.get_status(s, 100, f, "Adhaar Already registered", t, "yes")
-
-                if rec['sinuppan'] != '':
-                    if rec['sinuppan'] == sinuppan:
-                        s, f, t= errhand.get_status(s, 100, f, "PAN Already registered", t, "yes")
-
-                if rec['sinuparn'] != '':
-                    pan_payload = {"pan": rec['sinuppan']}
-                    if rec['sinuparn'] == sinuppan:
-                        s, f, t= errhand.get_status(s, 100, f, "ARN Already registered", t, "yes")
-
-                if rec['sinupmobile'] != '':
-                    if rec['sinupmobile'] == sinupmobile:
-                        s, f, t= errhand.get_status(s, 100, f, "Mobile Already registered", t, "yes")
-
-                if rec['sinupemail'] != '':
-                    if rec['sinupemail'] == sinupemail:
-                        s, f, t= errhand.get_status(s, 100, f, "Email Already registered", t, "yes")
-        else:
-            print("no records satifying the current user inputs")
+        reg_status, reg_data = allow_regis_user(db_json_rec, pyld)
+        print(reg_status)
+        print(reg_data)
+        if reg_status == "fail":
+            s, f, t= errhand.get_status(s, 100, f, reg_data, t, "yes")
+    
     print(s,f)
-        
-
-
+    
     if s <= 0:
         s1, f1 = db.mydbbegin(con, cur)
         print(s1,f1)
@@ -372,3 +356,58 @@ def save_usr_details(sav_usr):
         msg = "User data save failed"
     
     return status, msg
+
+
+
+def allow_regis_user(db_json_rec, pyld):
+    print("inside allow_regis_user")
+    s = 0
+    f = None
+    t = None #message to front end
+    stat = "success"
+    usrmsg = None
+
+    if db_json_rec:
+        for rec in db_json_rec:
+            if rec['userid'] != '':
+                if rec['userid'] == pyld["userid"]:
+                    s, f, t= errhand.get_status(s, 100, f, "Userid Already exists for the Email id", t, "yes")                  
+                    stat = "fail"
+
+            if rec['sinupemail'] != '':
+                if rec['sinupemail'] == pyld["sinupemail"]:
+                    s, f, t= errhand.get_status(s, 100, f, "Email Already registered", t, "yes")
+                    stat = "fail"
+
+            if stat != "fail":
+                if rec['sinupadhaar'] != '':           
+                    if rec['sinupadhaar'] == pyld["sinupadhaar"]:
+                        s, f, t= errhand.get_status(s, 100, f, "Adhaar Already registered", t, "no")
+
+                if rec['sinuppan'] != '':
+                    if rec['sinuppan'] == pyld["sinuppan"]:
+                        s, f, t= errhand.get_status(s, 100, f, "PAN Already registered", t, "no")
+
+                if rec['sinuparn'] != '':                
+                    if rec['sinuparn'] == pyld["sinuparn"]:
+                        s, f, t= errhand.get_status(s, 100, f, "ARN Already registered", t, "no")
+
+                if rec['sinupmobile'] != '':
+                    if rec['sinupmobile'] == pyld["sinupmobile"]:
+                        s, f, t= errhand.get_status(s, 100, f, "Mobile Already registered", t, "no")
+                
+                if s > 0: #incase one of the above already exists
+                    if rec["usercusttype"] == pyld["usercusttype"]:
+                        s, f, t= errhand.get_status(s, 100, f, "Userid Already exists with same Adhaar/PAN/ARN/MOBILE for selected cust type (ie...Resigter as)", t, "yes")
+                        stat = "fail"
+
+    else:
+        print("no records satifying the current user inputs")
+
+    print(pyld)
+    print(db_json_rec)
+
+    if stat == "fail":
+        usrmsg = errhand.error_msg_reporting(s, t)
+
+    return stat, usrmsg

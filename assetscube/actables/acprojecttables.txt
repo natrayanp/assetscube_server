@@ -9,8 +9,7 @@ CREATE TABLE acusr.userlogin (
 	userid 		               varchar(100) NOT NULL CONSTRAINT userid PRIMARY KEY,
 	username    		       varchar(100),  --PAN name
     useremail                  varchar(100) NOT NULL,
-    usertype			       varchar(2) NOT NULL, --> (R - Read only, W- Write)
-    usercusttype               varchar(10) NOT NULL, --> ()
+    logintype                  varchar(10) NOT NULL, --> (I- Investor, F - Family)
     userstatus		           varchar(2) NOT NULL, --> (A- Active, B-Blocked , I-Deleteduser)
     userstatlstupdt	           timestamptz NOT NULL,
     octime			           timestamptz NOT NULL,
@@ -33,18 +32,29 @@ CREATE TABLE acusr.loginh (
 
 
 
--- User authentication token
+-- User linked apps (ie. nawalcube, upstox, etc..)
 CREATE TABLE acusr.linkedapps (
     userid 		               varchar(100) NOT NULL REFERENCES ncusr.userlogin(userid),
-    lnk_entity                 text NOT NULL,
+    lnk_app                    text NOT NULL,
     lnk_userid                 varchar(100) NOT NULL,
     lnk_email                  varchar(100),
-    lnk_authtkn                varchar(400),
+    lnk_authtkn                varchar(400),  --> to keep userauthtkn of NC (since AC is trusted app)
     lnk_tknexpiry              timestamptz,
     lnkstatus                  varchar(2) NOT NULL, --> (L - Linked, D- Delinked)
     entityid                   varchar(20) NOT NULL,
     countryid                  varchar(10) NOT NULL,
     octime			           timestamptz NOT NULL,
-    lmtime			           timestamptz NOT NULL,
-    CONSTRAINT unq_comb_uauth UNIQUE (userid,appid) 
+    lmtime			           timestamptz NOT NULL
+);
+
+-- User family liked accounts
+CREATE TABLE acusr.linkedfmlyac (
+    userid 		               varchar(100) NOT NULL REFERENCES ncusr.userlogin(userid),
+    lnk_userid                 varchar(100) NOT NULL,
+    lnk_actionallowed          varchar(2) NOT NULL, (R - Read only, T - Transaction allowed)
+    lnkstatus                  varchar(2) NOT NULL, --> (L - Linked, D- Delinked)
+    entityid                   varchar(20) NOT NULL,
+    countryid                  varchar(10) NOT NULL,
+    octime			           timestamptz NOT NULL,
+    lmtime			           timestamptz NOT NULL
 );

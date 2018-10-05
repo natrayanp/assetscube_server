@@ -213,7 +213,7 @@ def ncclbk_singup_handler(callback_data):
 
         if s >= 0:
             sav_usr = {
-                "userid": uid,
+                "uid": uid,
                 "nc_email" : nc_email,
                 "nc_userauthtkn" : nc_userauthtkn,
                 "nc_tknexpiry" : nc_tknexpiry,

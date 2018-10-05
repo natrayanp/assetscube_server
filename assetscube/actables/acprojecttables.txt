@@ -18,6 +18,7 @@ CREATE TABLE acusr.userlogin (
     countryid                  varchar(10) NOT NULL
     );
 
+
 -- Login history
 CREATE TABLE acusr.loginh (
     userid 		               varchar(100) NOT NULL REFERENCES ncusr.userlogin(userid),

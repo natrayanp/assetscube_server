@@ -21,7 +21,7 @@ CREATE TABLE acusr.userlogin (
 
 -- Login history
 CREATE TABLE acusr.loginh (
-    userid 		               varchar(100) NOT NULL REFERENCES ncusr.userlogin(userid),
+    userid 		               varchar(100) NOT NULL REFERENCES acusr.userlogin(userid),
     ipaddress                  varchar(25),
     sessionid                  varchar(100),
     site                       varchar(100),  --> nc - Nawalcube, dv - developer, au - auth
@@ -35,7 +35,7 @@ CREATE TABLE acusr.loginh (
 
 -- User linked apps (ie. nawalcube, upstox, etc..)
 CREATE TABLE acusr.linkedapps (
-    userid 		               varchar(100) NOT NULL REFERENCES ncusr.userlogin(userid),
+    userid 		               varchar(100) NOT NULL REFERENCES acusr.userlogin(userid),
     lnk_app                    text NOT NULL,
     lnk_userid                 varchar(100) NOT NULL,
     lnk_email                  varchar(100),
@@ -50,9 +50,9 @@ CREATE TABLE acusr.linkedapps (
 
 -- User family liked accounts
 CREATE TABLE acusr.linkedfmlyac (
-    userid 		               varchar(100) NOT NULL REFERENCES ncusr.userlogin(userid),
+    userid 		               varchar(100) NOT NULL REFERENCES acusr.userlogin(userid),
     lnk_userid                 varchar(100) NOT NULL,
-    lnk_actionallowed          varchar(2) NOT NULL, (R - Read only, T - Transaction allowed)
+    lnk_actionallowed          varchar(2) NOT NULL, --> (R - Read only, T - Transaction allowed)
     lnkstatus                  varchar(2) NOT NULL, --> (L - Linked, D- Delinked)
     entityid                   varchar(20) NOT NULL,
     countryid                  varchar(10) NOT NULL,

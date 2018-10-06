@@ -85,7 +85,7 @@ def callback():
         payload["entityid"] = entityid
         payload["countryid"] = countryid 
         res_status, res_to_send = callback_handler(payload)
-
+        print(res_status, res_to_send)
         if res_status == 'success':
             resps = make_response(jsonify(res_to_send), 200)
             #resps = make_response(jsonify(response), 200 if res_to_send == 'success' else 400)
@@ -171,7 +171,6 @@ def ncclbk_singup_handler(callback_data):
             if s <= 0:
                 try: 
                     user = auth.get_user_by_email(nc_email,app=default_app)
-                    print('Successfully fetched user data: {0}'.format(user.uid))
                 except auth.AuthError as e:
                     print(str(e.args))
                     s, f, t= errhand.get_status(s, 0, f, ''.join(e.args), t, "no")   
@@ -180,12 +179,13 @@ def ncclbk_singup_handler(callback_data):
                     print(inst)
                     s, f, t= errhand.get_status(s, 0, f, inst, t, "no")
                 else:
+                    print('Successfully fetched user data: {0}'.format(user.uid))
                     if user.uid != None or user.uid != "":
                         useridex = True
-
+                        uid = user.uid
                     print("user details fetch successful")
-                    s, f, t= errhand.get_status(s, 0, f, " email already registered.", t, "yes")
-                    usrmsg = "email already registered."
+                    s, f, t= errhand.get_status(s, 0, f, " email already registered.", t, "no")
+                    #usrmsg = "email already registered."
             print(useridex)
             #If email already exists skip fb user creation
             if s <= 0 and (not useridex):
@@ -197,7 +197,7 @@ def ncclbk_singup_handler(callback_data):
                     print(e.code)
                     print(e.detail)
                     print("Auth error while creating user")
-                    s = 100
+                    s, f, t= errhand.get_status(s, 100, f, "User registration failed.  Please cotact support [ac error]", t, "yes")
                 except ValueError as e:
                     print("value error while creating user")
                     s, f, t= errhand.get_status(s, 0, f, "Firebase app user details fetch failed", t, "no")
@@ -205,13 +205,13 @@ def ncclbk_singup_handler(callback_data):
                 else:
                     print(user.uid)
                     print(format(user))
-                    uid = format(user.uid)
+                    uid = user.uid
             print("inside callback singup success")
 
         else:
             s, f, t= errhand.get_status(s, 100, f, "User registration failed.  Please contact support [nc fetch].", t, "yes")
 
-        if s >= 0:
+        if s <= 0:
             sav_usr = {
                 "uid": uid,
                 "nc_email" : nc_email,
@@ -230,15 +230,7 @@ def ncclbk_singup_handler(callback_data):
 
             
 
-        if s >= 0:
-            rec_status ="fail"
-            usrmsg = " registered failed.  Please retry.  If problem persists, please conatact support"
-            callbk_proc_data ={
-                "typ": "signup",
-                "regdata": "401",
-                "msg": usrmsg
-            }
-        else:
+        if s <= 0:
             rec_status ="success"
             if usrmsg == None:
                 usrmsg = " registered successfully.  Please reset password before first login"
@@ -249,6 +241,15 @@ def ncclbk_singup_handler(callback_data):
                 "regdata": "200",
                 "msg": nc_email + usrmsg
             }
+        else:
+            rec_status ="fail"
+            usrmsg = " registered failed.  Please retry.  If problem persists, please conatact support"
+            callbk_proc_data ={
+                "typ": "signup",
+                "regdata": "401",
+                "msg": usrmsg
+            }
+
         
         return  rec_status, callbk_proc_data
 
@@ -269,14 +270,14 @@ def save_usr_details(sav_usr):
         command = cur.mogrify("""
                                 SELECT json_agg(a) FROM (
                                 SELECT userid, username, useremail, logintype
-                                FROM ncusr.userlogin
+                                FROM acusr.userlogin
                                 WHERE userstatus NOT IN ('I')
                                 AND (
                                         userid = %s OR  useremail = %s
                                     )
                                 AND entityid = %s AND countryid = %s
                                 ) as a
-                            """,(sav_usr["uid"],sav_usr["useremail"],sav_usr["entityid"],sav_usr["countryid"],))
+                            """,(sav_usr["uid"],sav_usr["nc_email"],sav_usr["entityid"],sav_usr["countryid"],))
         print(command)
         cur, s1, f1 = db.mydbfunc(con,cur,command)
         s, f, t = errhand.get_status(s, s1, f, f1, t, "no")
@@ -297,7 +298,7 @@ def save_usr_details(sav_usr):
         print(reg_status)
         print(reg_data)
         if reg_status == "fail":
-            s, f, t= errhand.get_status(s, 100, f, reg_data, t, "yes")
+            s, f, t= errhand.get_status(s, 101, f, reg_data, t, "yes")
     
     print(s,f)
     
@@ -327,7 +328,7 @@ def save_usr_details(sav_usr):
     if s <= 0:
         command = cur.mogrify("""
                     INSERT INTO acusr.linkedapps (userid, lnk_app, lnk_userid, lnk_email, lnk_authtkn, lnk_tknexpiry, lnkstatus, octime, lmtime, entityid, countryid) 
-                    VALUES (%s,%s,%s,%s,%s,%s,'L',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,%s,%s);
+                    VALUES (%s,%s,%s,%s,%s,%s,'L',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,%s,%s);
                     """,(sav_usr["uid"], sav_usr["nc_entity"], sav_usr["nc_usrid"], sav_usr["nc_email"],sav_usr["nc_userauthtkn"],sav_usr["nc_tknexpiry"], settings.INSTALLDATA[settings.LIVE]["entityid"],settings.INSTALLDATA[settings.LIVE]["countryid"],))
         print(command)
 
@@ -365,7 +366,7 @@ def allow_regis_user(db_json_rec, pyld):
     if db_json_rec:
         for rec in db_json_rec:
             if rec['userid'] != '':
-                if rec['userid'] == pyld["userid"]:
+                if rec['userid'] == pyld["uid"]:
                     s, f, t= errhand.get_status(s, 100, f, "Userid Already exists for the Email id", t, "yes")                  
                     stat = "fail"
 

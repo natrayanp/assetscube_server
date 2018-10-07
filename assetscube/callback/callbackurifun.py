@@ -209,7 +209,7 @@ def ncclbk_singup_handler(callback_data):
             print("inside callback singup success")
 
         else:
-            s, f, t= errhand.get_status(s, 100, f, "User registration failed.  Please contact support [nc fetch].", t, "yes")
+            s, f, t= errhand.get_status(s, 100, f, "User registration failed.<br>  Please contact support [nc fetch].", t, "yes")
 
         if s <= 0:
             sav_usr = {
@@ -226,27 +226,29 @@ def ncclbk_singup_handler(callback_data):
             sav_status, sav_resp_rec = save_usr_details(sav_usr)
             if sav_status != "success":
                 print(sav_resp_rec)
-                s, f, t= errhand.get_status(s, 100, f, "User registration failed.  Please contact support [ac db update].", t, "yes")
+                s, f, t= errhand.get_status(s, 100, f, "User registration failed.<br>  Please contact support [ac db update].", t, "yes")
 
             
 
         if s <= 0:
             rec_status ="success"
             if usrmsg == None:
-                usrmsg = " registered successfully.  Please reset password before first login"
+                usrmsg = "User registered successfully.  Please reset password before first login"
             else:
-                usrmsg = " registered successfully.  Please reset password before first login. "+ usrmsg
+                usrmsg = "User registered successfully.  Please reset password before first login. "+ usrmsg
             callbk_proc_data = {
                 "typ": "signup",
                 "regdata": "200",
-                "msg": nc_email + usrmsg
+                "email" : nc_email,
+                "msg": usrmsg
             }
         else:
             rec_status ="fail"
-            usrmsg = " registered failed.  Please retry.  If problem persists, please conatact support"
+            usrmsg = "Registration failed.   Please retry. <br>  If problem persists, please conatact support"
             callbk_proc_data ={
                 "typ": "signup",
                 "regdata": "401",
+                "email" : nc_email,
                 "msg": usrmsg
             }
 
@@ -350,7 +352,8 @@ def save_usr_details(sav_usr):
         msg = "User data saved successfully"
     else:
         rec_status = "fail"
-        msg = "User data save failed"
+        tt = errhand.front_end_msg if errhand.front_end_msg != None else ""
+        msg = "User data save failed " + tt
     
     return rec_status, msg
 

@@ -47,7 +47,30 @@ def signup_common():
 
 
 
+@bp_acauth.route("/aclogin",methods=["GET","POST","OPTIONS"])
+def aclogin():
+    if request.method=="OPTIONS":
+            print("inside aclogin options")
+            response1 = make_response(jsonify("inside aclogin options"),200)
+            return response1
 
+    elif request.method=="POST":
+        res_to_send, response = aclogin_common()
+
+        if res_to_send == 'success':
+            resps = make_response(jsonify(response), 200)
+            #resps = make_response(jsonify(response), 200 if res_to_send == 'success' else 400)
+        else:
+            resps = make_response(jsonify(response), 400)
+        
+        return resps
+
+
+def aclogin_common():
+    url = settings.NCLOGINURL[settings.LIVE]+'?request=code&appid='+settings.NCAPPID[settings.LIVE]+'&redirecturi='+settings.MYREDIRURI[settings.LIVE]
+    print(url)
+    repons = {'url':url}
+    return 'success', repons
 
 
 

@@ -14,7 +14,7 @@ import hashlib
 
 
 
-@bp_acauth.route("/signup",methods=["GET","POST","OPTIONS"])
+@bp_acauth.route("/acsignup",methods=["GET","POST","OPTIONS"])
 def signup():
     if request.method=="OPTIONS":
             print("inside signup options")

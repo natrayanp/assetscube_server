@@ -2,10 +2,10 @@
 # UAT = 1
 LIVE = 1
 
-NCAPPID = ['','6b43d76a65f77bf29f3056c3f05715b7b92f5b03ddb5faa3998d585b3038ec04']
-NCAPPKEY = ['','34b399082e12715c29b63a6ec83e1215']
+NCAPPID = ['','97a5e4737f2dd10e5d39da0add60788f17e9b58a1bf4e1e459a147389f92d925']
+NCAPPKEY = ['','c271074b35443e27b2da016f94f92e1e']
 NCREGURL = ['','http://localhost:8080/ncappsignup']
-NCLOGINURL = ['','http://localhost:4200/authorise']
+NCLOGINURL = ['','http://localhost:4200/authorise/auth']
 NCSIGNUPDATAFETCHURL = ['','http://localhost:8080/ncappfetchfrmtkn']
 MYHOMEPG = ['','http://localhost:4201']
 MYREDIRURI = ['','http://localhost:4201/noti/nc']

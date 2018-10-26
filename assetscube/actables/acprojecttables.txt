@@ -44,7 +44,7 @@ CREATE TABLE acusr.linkedapps (
     lnkstatus                  varchar(2) NOT NULL, --> (L - Linked, D- Delinked)
     octime			           timestamptz NOT NULL,
     lmtime			           timestamptz NOT NULL,
-    entityid                   vanrchar(20) NOT NULL,
+    entityid                   varchar(20) NOT NULL,
     countryid                  varchar(10) NOT NULL
 );
 

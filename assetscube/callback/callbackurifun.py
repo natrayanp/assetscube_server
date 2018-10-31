@@ -138,10 +138,11 @@ def ncclbk_singup_handler(callback_data):
         req_payload = {"userauthtkn": callback_data["regdata"], "appid": settings.NCAPPID[settings.LIVE],"appkey":settings.NCAPPKEY[settings.LIVE]}
         print("###########################")
         print(req_payload)
+        print(type(req_payload))
         print("###########################")
         r = requests.post(settings.NCSIGNUPDATAFETCHURL[settings.LIVE], headers=headers, data=json.dumps(req_payload))
-        nc_usr_data = json.loads(r.content)
-        print(json.loads(r.content))
+        nc_usr_data = json.loads(r.content.decode("utf-8") )
+        print(json.loads(r.content.decode("utf-8")))
 
 
         if nc_usr_data["status"] == "success":

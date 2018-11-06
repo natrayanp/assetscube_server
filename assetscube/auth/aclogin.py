@@ -73,9 +73,6 @@ def aclogin_common():
     return 'success', repons
 
 
-
-
-
 '''
 
 

@@ -12,6 +12,7 @@ from firebase_admin import credentials
 from firebase_admin import auth
 import json
 import requests
+import jwt
 
 @bp_accallbk.route("/callback",methods=["GET","POST","OPTIONS"])
 def callback():
@@ -19,16 +20,8 @@ def callback():
             print("inside callback options")
             response = "inside callback options"
             #print(request.headers)
-            response1 = make_response(jsonify(response))
-            #response1.headers['Origin'] = "http://localhost:5000"
-            #response1.headers['Access-Control-Allow-Origin'] = "*"
-            #response1.headers['Access-Control-Allow-Methods'] = "GET, POST, PATCH, PUT, DELETE, OPTIONS"
-            #response1.headers['Access-Control-Allow-Headers'] = "Origin, entityid, Content-Type, X-Auth-Token, countryid"
-            
-            #print(response1.headers)
-            
+            response1 = make_response(jsonify(response))            
             return response1
-            #return make_response(jsonify(response), 200)
 
     elif request.method=="GET":
         print("inside callback get")
@@ -109,7 +102,8 @@ def callback_handler(callback_data):
 def ncallbk_handler(callback_data):
     if callback_data["type"] == "signup":
         return ncclbk_singup_handler(callback_data)
-
+    elif callback_data["type"] == "code":
+        return ncclbk_login_handler(callback_data)
 
 def ncclbk_singup_handler(callback_data):
     print("inside ncclbk_singup_handler function")
@@ -143,6 +137,7 @@ def ncclbk_singup_handler(callback_data):
         r = requests.post(settings.NCSIGNUPDATAFETCHURL[settings.LIVE], headers=headers, data=json.dumps(req_payload))
         nc_usr_data = json.loads(r.content.decode("utf-8") )
         print(json.loads(r.content.decode("utf-8")))
+        print('i see')
 
 
         if nc_usr_data["status"] == "success":
@@ -330,9 +325,9 @@ def save_usr_details(sav_usr):
 
     if s <= 0:
         command = cur.mogrify("""
-                    INSERT INTO acusr.linkedapps (userid, lnk_app, lnk_userid, lnk_email, lnk_authtkn, lnk_tknexpiry, lnkstatus, octime, lmtime, entityid, countryid) 
+                    INSERT INTO acusr.linkedapps (userid, lnk_app, lnk_userid, lnk_email,  lnkstatus, octime, lmtime, entityid, countryid) 
                     VALUES (%s,%s,%s,%s,%s,%s,'L',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,%s,%s);
-                    """,(sav_usr["uid"], sav_usr["nc_entity"], sav_usr["nc_usrid"], sav_usr["nc_email"],sav_usr["nc_userauthtkn"],sav_usr["nc_tknexpiry"], settings.INSTALLDATA[settings.LIVE]["entityid"],settings.INSTALLDATA[settings.LIVE]["countryid"],))
+                    """,(sav_usr["uid"], sav_usr["nc_entity"], sav_usr["nc_usrid"], sav_usr["nc_email"],settings.INSTALLDATA[settings.LIVE]["entityid"],settings.INSTALLDATA[settings.LIVE]["countryid"],))
         print(command)
 
         cur, s1, f1 = db.mydbfunc(con,cur,command)
@@ -411,3 +406,176 @@ def allow_regis_user(db_json_rec, pyld):
         usrmsg = errhand.error_msg_reporting(s, t)
 
     return stat, usrmsg
+
+
+def ncclbk_login_handler(pyldjson):
+    print("inside ncclbk_login_handler function")
+    s = 0
+    f = None
+    t = None #message to front end
+    usrmsg = None
+    rec_status ="fail"
+    callback_data = pyldjson
+    print("nc ncclbk_login_handler handler")
+    if callback_data["regdata"] == '401':
+        # show error page
+        print("login handler error")
+        callbk_proc_data ={
+                "typ": "login",
+                "regdata": "401",
+                "msg": "Login failed.  Please retry.  If problem persists, please conatact support"
+            }        
+        return "fail", callbk_proc_data
+    else:
+        # Please        
+        #Get pass token from nawalcube
+        entityid = callback_data["entityid"]
+        countryid = callback_data["countryid"]
+
+        headers = {"entityid": entityid, "countryid": countryid}
+        req_payload = {
+                        "userauthtkn": callback_data["regdata"], 
+                        "appid": settings.NCAPPID[settings.LIVE],
+                        "appkey":settings.NCAPPKEY[settings.LIVE],
+                        "redirecturi":settings.MYREDIRURI[settings.LIVE]
+                        }
+        print("###########################")
+        print(req_payload)
+        print(type(req_payload))
+        print("###########################")
+        #r = requests.post(settings.NCPASSURL[settings.LIVE], headers=headers, data=json.dumps(req_payload))
+
+        try:
+            r = requests.post(settings.NCPASSURL[settings.LIVE], headers=headers, data=json.dumps(req_payload))
+        except requests.exceptions.Timeout:
+            print("timeout exception")
+            #pan_data = {"pan_name": None, "kyc_status": None}
+        except requests.exceptions.RequestException as e:
+            print("exception")
+            print(e)
+        else:
+            print(r.content)
+            nc_usr_data = json.loads(r.content.decode("utf-8") )
+            print(json.loads(r.content.decode("utf-8")))
+            print('i see')
+            print(type(nc_usr_data))
+            nc_usr_data = json.loads(nc_usr_data)
+            print(nc_usr_data)
+            print(type(nc_usr_data))
+        
+        jwtdecoded = jwt.decode(nc_usr_data.get("ncjwt"), verify=False)
+        print(jwtdecoded)
+        ncuid = jwtdecoded["ncuserid"]
+
+        #Get acuserid from ncuserid
+        con, cur, s1, f1 = db.mydbopncon()
+        s, f, t = errhand.get_status(s, s1, f, f1, t, "no")
+        s1, f1 = 0, None
+        print("DB connection established", s,f,t)
+
+        #get acuid from ncuid 
+        if s <= 0:
+            command = cur.mogrify("""
+                                    SELECT userid
+                                    FROM acusr.linkedapps
+                                    WHERE lnkstatus = 'L'
+                                    AND lnk_userid = %s
+                                    AND entityid = %s AND countryid = %s
+                                """,(ncuid,entityid,countryid,))
+            print(command)
+            cur, s1, f1 = db.mydbfunc(con,cur,command)
+            s, f, t = errhand.get_status(s, s1, f, f1, t, "no")
+            s1, f1 = 0, None
+            print('----------------')
+            print(s)
+            print(f)
+            print('----------------')            
+            if s > 0:
+                s, f, t = errhand.get_status(s, 200, f, "User data fetch failed with DB error", t, "no")
+                print(s,f)
+               
+        if s <= 0:
+            print("rowcount")                
+            print(cur.rowcount)
+            print("rowcount") 
+            if cur.rowcount > 0:
+                uid = cur.fetchall()[0][0]
+                print(uid)
+
+        print(s,f)
+        print("rowcount") 
+        
+        if s <= 0:
+            custom_token = get_custom_token(uid)
+
+        if s <= 0:
+            rec_status = "success"
+            callbk_proc_data = {
+                "jwt": custom_token
+            } 
+        else:
+            rec_status = "fail"
+            callbk_proc_data = ""
+        '''
+        if status == "success":
+            if usrmsg == None:
+                usrmsg = "User login successfully.  Please reset password before first login"
+            else:
+                usrmsg = "User login successfully.  Please reset password before first login. "+ usrmsg
+            callbk_proc_data = {
+                "typ": "login",
+                "regdata": "200",
+                "jwt" : custom_token,
+                "msg": usrmsg
+            }
+        else:
+            rec_status ="fail"
+            usrmsg = "unable to save passtkn"               
+        else:
+            rec_status ="fail"
+        
+        if rec_status == "fail":
+            if usrmsg == None:                
+                usrmsg = "Login failed.   Please retry. <br>  If problem persists, please conatact support"
+            else:
+                usrmsg = "Login failed.   Please retry. <br>  If problem persists, please conatact support. [" + usrmsg +"]"
+            callbk_proc_data ={
+                "typ": "login",
+                "regdata": "401",
+                "jwt" : '',
+                "msg": usrmsg
+            }
+        '''
+        return  rec_status, callbk_proc_data
+
+
+def get_custom_token(uid):
+    print("inside get_custom_token function")
+    s = 0
+    f = None
+    t = None #message to front end
+    usrmsg = None
+    rec_status ="fail"
+    #create firebase custom token for users.
+    #nc_usr_data
+    #initialise the Firebase app
+    try:
+        print('inside try')
+        default_app = firebase_admin.get_app('acfbapp')
+        print('about inside try')
+    except ValueError:
+        print('inside value error')
+        #cred = credentials.Certificate(os.path.dirname(__file__)+'/serviceAccountKey.json')
+        cred = credentials.Certificate(settings.FBSERVICEAC)
+        default_app = firebase_admin.initialize_app(credential=cred,name='acfbapp')
+        s, f, t= errhand.get_status(s, 0, f, "Firebase app initialised", t, "no")
+    else:
+        pass
+    
+    print('app initialisation completed')
+
+    if s <= 0:
+        rec_status ="success"
+        custom_token = auth.create_custom_token(uid,app=default_app)
+
+    return custom_token.decode("utf-8")

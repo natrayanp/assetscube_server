@@ -41,6 +41,8 @@ CREATE TABLE acusr.linkedapps (
     lnk_email                  varchar(100),
     lnk_authtkn                varchar(400),  --> to keep userauthtkn of NC (since AC is trusted app)
     lnk_tknexpiry              timestamptz,
+    lnk_passtkn                text,  --> to keep appauthtkn of NC (since AC is trusted app)
+    lnk_pass_exp                timestamptz,
     lnkstatus                  varchar(2) NOT NULL, --> (L - Linked, D- Delinked)
     octime			           timestamptz NOT NULL,
     lmtime			           timestamptz NOT NULL,

@@ -11,6 +11,7 @@ NCPASSURL = ['','http://localhost:8080/appauth']
 MYHOMEPG = ['','http://localhost:4201']
 MYREDIRURI = ['','http://localhost:4201/noti/nc']
 MYNOTIPG = ["","http://localhost:4201/noti"]
+AUTOAUTHAPPS = [[],["NAWALCUBE"]]
 
 FBSERVICEAC = {
   "type": "service_account",

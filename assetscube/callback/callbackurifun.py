@@ -427,160 +427,168 @@ def ncclbk_login_handler(pyldjson):
             }        
         return "fail", callbk_proc_data
     else:
-        # Please        
         #Get pass token from nawalcube
-        entityid = callback_data["entityid"]
-        countryid = callback_data["countryid"]
-
-        headers = {"entityid": entityid, "countryid": countryid}
-        req_payload = {
-                        "userauthtkn": callback_data["regdata"], 
-                        "appid": settings.NCAPPID[settings.LIVE],
-                        "appkey":settings.NCAPPKEY[settings.LIVE],
-                        "redirecturi":settings.MYREDIRURI[settings.LIVE]
-                        }
-        print("###########################")
-        print(req_payload)
-        print(type(req_payload))
-        print("###########################")
-        #r = requests.post(settings.NCPASSURL[settings.LIVE], headers=headers, data=json.dumps(req_payload))
-
-        try:
-            r = requests.post(settings.NCPASSURL[settings.LIVE], headers=headers, data=json.dumps(req_payload))
-        except requests.exceptions.Timeout:
-            print("timeout exception")
-            #pan_data = {"pan_name": None, "kyc_status": None}
-        except requests.exceptions.RequestException as e:
-            print("exception")
-            print(e)
-        else:
-            print(r.content)
-            nc_usr_data = json.loads(r.content.decode("utf-8") )
-            print(json.loads(r.content.decode("utf-8")))
-            print('i see')
-            print(type(nc_usr_data))
-            nc_usr_data = json.loads(nc_usr_data)
-            print(nc_usr_data)
-            print(type(nc_usr_data))
-        
-        jwtdecoded = jwt.decode(nc_usr_data.get("ncjwt"), verify=False)
-        print(jwtdecoded)
-        ncuid = jwtdecoded["ncuserid"]
-        nc_pass_tkn_exp = jwtdecoded["exp"]        
-
-        #Get acuserid from ncuserid
-        con, cur, s1, f1 = db.mydbopncon()
-        s, f, t = errhand.get_status(s, s1, f, f1, t, "no")
-        s1, f1 = 0, None
-        print("DB connection established", s,f,t)
-
-        #get acuid from ncuid 
-        if s <= 0:
-            command = cur.mogrify("""
-                                    SELECT userid
-                                    FROM acusr.linkedapps
-                                    WHERE lnkstatus = 'L'
-                                    AND lnk_userid = %s
-                                    AND entityid = %s AND countryid = %s
-                                """,(ncuid,entityid,countryid,))
-            print(command)
-            cur, s1, f1 = db.mydbfunc(con,cur,command)
-            s, f, t = errhand.get_status(s, s1, f, f1, t, "no")
-            s1, f1 = 0, None
-            print('----------------')
-            print(s)
-            print(f)
-            print('----------------')            
-            if s > 0:
-                s, f, t = errhand.get_status(s, 200, f, "User data fetch failed with DB error", t, "no")
-                print(s,f)
-               
-        if s <= 0:
-            print("rowcount")                
-            print(cur.rowcount)
-            print("rowcount") 
-            if cur.rowcount > 0:
-                uid = cur.fetchall()[0][0]
-                print(uid)
-
-        print(s,f)
-        print("rowcount") 
-        
-        #Check for other linked apps
-        linked_apps_input = {
-            "acuid": uid,
-            "entityid": entityid,
-            "countryid": countryid,
-            "pass_tkn_exp" : nc_pass_tkn_exp,
-            "pass_tkn": nc_usr_data.get("ncjwt"),
-            "lnk_userid": ncuid
+        data_for_passtkn = {
+            "entityid" : callback_data["entityid"],
+            "countryid" : callback_data["countryid"],
+            "userauthtkn" : callback_data["regdata"]
         }
-        rec_status, linked_apps_lst = get_linked_apps_nd_save(linked_apps_input)
-        if rec_status > 0:
-            s, f, t = errhand.get_status(s, rec_status, f, "Linked app data fetch failed with error", t, "no")
-            print(s,f)
 
+        status,linked_apps_lst = nc_pass_tkn(data_for_passtkn)
+        if status > 0:
+             s, f, t = errhand.get_status(s, 200, f, "NC pass token get failed", t, "no")      
+      
         if s <= 0:
-            if len(linked_apps_lst) > 0:
-                #This means we have other apps other than the app we are working with
-                any_exp_tkn = False
-                for lk_app in linked_apps_lst:
-                    if lk_app["pass_tkn_status"] != "active":
-                            any_exp_tkn = True
-            else:
-                any_exp_tkn = False
-        
-        if s <= 0:
-            if any_exp_tkn == False:
-                custom_token = get_custom_token(uid)
-
-        if s <= 0:
-            if any_exp_tkn == False:
-                rec_status = "success"
-                callbk_proc_data = {
-                    "type": "jwt",
-                    "jwt": custom_token
-                }
-            else:
-                rec_status = "success"
-                callbk_proc_data = {
-                    "type": "applist",
-                    "apps_list": linked_apps_lst
-                }
-        else:
+            rec_status, callbk_proc_data = what_pg_to_show(linked_apps_lst)
+          
+        if s > 0:
             rec_status = "fail"
             callbk_proc_data = ""
-        '''
-        if status == "success":
-            if usrmsg == None:
-                usrmsg = "User login successfully.  Please reset password before first login"
-            else:
-                usrmsg = "User login successfully.  Please reset password before first login. "+ usrmsg
-            callbk_proc_data = {
-                "typ": "login",
-                "regdata": "200",
-                "jwt" : custom_token,
-                "msg": usrmsg
-            }
-        else:
-            rec_status ="fail"
-            usrmsg = "unable to save passtkn"               
-        else:
-            rec_status ="fail"
-        
-        if rec_status == "fail":
-            if usrmsg == None:                
-                usrmsg = "Login failed.   Please retry. <br>  If problem persists, please conatact support"
-            else:
-                usrmsg = "Login failed.   Please retry. <br>  If problem persists, please conatact support. [" + usrmsg +"]"
-            callbk_proc_data ={
-                "typ": "login",
-                "regdata": "401",
-                "jwt" : '',
-                "msg": usrmsg
-            }
-        '''
-        return  rec_status, callbk_proc_data
+
+    return  rec_status, callbk_proc_data
+
+def what_pg_to_show(linked_apps_lst):
+    #check if any expired pass tokens.  If yes, ask user to login
+    #if no create custom token for client to login
+    any_exp_tkn = chk_for_expired_tkns(linked_apps_lst)
+
+    if any_exp_tkn == False:
+        #All app has valid tokens so allowing app to login
+        custom_token = get_custom_token(linked_apps_lst[0]["userid"])
+        rec_status = "success"
+        callbk_proc_data = {
+            "type": "jwt",
+            "jwt": custom_token
+        }
+    else:
+        rec_status = "success"
+        callbk_proc_data = {
+            "type": "applist",
+            "apps_list": linked_apps_lst
+        }
+    
+    return rec_status, callbk_proc_data
+
+
+
+def chk_for_expired_tkns(linked_apps_lst):
+    #Check for any app with expired token
+    print("Inside chk_for_expired_tkns")
+    print(linked_apps_lst)
+    any_exp_tkn = False                
+    for lk_app in linked_apps_lst:
+        print("******************")
+        print(lk_app)
+        print("******************")
+        if lk_app["pass_tkn_status"] != "active":
+            any_exp_tkn = True
+
+    print(any_exp_tkn)
+    return any_exp_tkn
+
+def nc_pass_tkn(callback_data):
+    #get pass token from nc
+    s = 0
+    f = None
+    t = None #message to front end
+    lnkd_app_data = None
+    entityid = callback_data["entityid"]
+    countryid = callback_data["countryid"]
+
+    headers = {"entityid": entityid, "countryid": countryid}
+    req_payload = {
+                    "userauthtkn": callback_data["userauthtkn"], 
+                    "appid": settings.NCAPPID[settings.LIVE],
+                    "appkey":settings.NCAPPKEY[settings.LIVE],
+                    "redirecturi":settings.MYREDIRURI[settings.LIVE]
+                    }
+    print("###########################")
+    print(req_payload)
+    print(type(req_payload))
+    print("###########################")
+    #r = requests.post(settings.NCPASSURL[settings.LIVE], headers=headers, data=json.dumps(req_payload))
+
+    try:
+        r = requests.post(settings.NCPASSURL[settings.LIVE], headers=headers, data=json.dumps(req_payload))
+    except requests.exceptions.Timeout:
+        print("timeout exception")
+        s, f, t = errhand.get_status(s, 100, f, "Timeout error in sending request to nc", t, "yes")
+        #pan_data = {"pan_name": None, "kyc_status": None}
+    except requests.exceptions.RequestException as e:
+        print("exception")
+        print(e)
+        s, f, t = errhand.get_status(s, 100, f, "error in sending request to nc", t, "yes")
+    else:
+        print(r.content)
+        nc_usr_data = json.loads(r.content.decode("utf-8") )
+        print(json.loads(r.content.decode("utf-8")))
+        print('i see')
+        print(type(nc_usr_data))
+        nc_usr_data = json.loads(nc_usr_data)
+        print(nc_usr_data)
+        print(type(nc_usr_data))
+
+
+    jwtdecoded = jwt.decode(nc_usr_data.get("ncjwt"), verify=False)
+    print(jwtdecoded)
+    ncuid = jwtdecoded["ncuserid"]
+    nc_pass_tkn_exp = jwtdecoded["exp"]        
+
+    #Get acuserid from ncuserid
+    con, cur, s1, f1 = db.mydbopncon()
+    s, f, t = errhand.get_status(s, s1, f, f1, t, "no")
+    s1, f1 = 0, None
+    print("DB connection established", s,f,t)
+
+    #get acuid from ncuid 
+    if s <= 0:
+        command = cur.mogrify("""
+                                SELECT userid
+                                FROM acusr.linkedapps
+                                WHERE lnkstatus = 'L'
+                                AND lnk_userid = %s
+                                AND entityid = %s AND countryid = %s
+                            """,(ncuid,entityid,countryid,))
+        print(command)
+        cur, s1, f1 = db.mydbfunc(con,cur,command)
+        s, f, t = errhand.get_status(s, s1, f, f1, t, "no")
+        s1, f1 = 0, None
+        print('----------------')
+        print(s)
+        print(f)
+        print('----------------')            
+        if s > 0:
+            s, f, t = errhand.get_status(s, 200, f, "User data fetch failed with DB error", t, "no")
+            print(s,f)
+            
+    if s <= 0:
+        print("rowcount")                
+        print(cur.rowcount)
+        print("rowcount") 
+        if cur.rowcount > 0:
+            uid = cur.fetchall()[0][0]
+            print(uid)
+
+    print(s,f)
+    print("rowcount") 
+    
+    #Check for other linked apps
+    linked_apps_input = {
+        "acuid": uid,
+        "entityid": entityid,
+        "countryid": countryid,
+        "pass_tkn_exp" : nc_pass_tkn_exp,
+        "pass_tkn": nc_usr_data.get("ncjwt"),
+        "lnk_userid": ncuid
+    }
+    rec_status, linked_apps_lst = get_linked_apps_nd_save(linked_apps_input)
+    if rec_status > 0:
+        s, f, t = errhand.get_status(s, rec_status, f, "Linked app data fetch failed with error", t, "no")
+        print(s,f)
+
+    return s, linked_apps_lst
+    
+
 
 def get_linked_apps_nd_save(linked_apps_input):
     #Get all the linked apps for a acuid
@@ -591,7 +599,7 @@ def get_linked_apps_nd_save(linked_apps_input):
     lnkd_app_data = None
 
     lnk_passtkn = linked_apps_input["pass_tkn"]
-    lnk_pass_exp = linked_apps_input["pass_tkn_exp"]
+    lnk_pass_exp = datetime.strptime(linked_apps_input["pass_tkn_exp"],'%d%m%Y%H%M%S%f')
     acusrid = linked_apps_input["acuid"]
     lnk_app_uid = linked_apps_input["lnk_userid"]
     entityid = linked_apps_input["entityid"]
@@ -674,7 +682,7 @@ def get_linked_apps_nd_save(linked_apps_input):
         return s, lnkd_app_data
  
 
- def ncapp_auto_auth_processing(lnkd_app_data):
+#def ncapp_auto_auth_processing(lnkd_app_data):
      #Check for Nawalcube app in the linked app list.  
      #If present get authorise token
     

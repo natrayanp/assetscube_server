@@ -2,16 +2,22 @@
 # UAT = 1
 LIVE = 1
 
-NCAPPID = ['','501423418772fe69f94def7239c597659838247c548b2d371ff86501240c7282']
-NCAPPKEY = ['','e4eff02aba5aff21b37afd86494953d7']
-NCREGURL = ['','http://localhost:8080/ncappsignup']
-NCLOGINURL = ['','http://localhost:4200/authorise/auth']
-NCSIGNUPDATAFETCHURL = ['','http://localhost:8080/ncappfetchfrmtkn']
-NCPASSURL = ['','http://localhost:8080/appauth']
-MYHOMEPG = ['','http://localhost:4201']
-MYREDIRURI = ['','http://localhost:4201/noti/nc']
-MYNOTIPG = ["","http://localhost:4201/noti"]
-AUTOAUTHAPPS = [[],["NAWALCUBE"]]
+NCAPPID = ['501423418772fe69f94def7239c597659838247c548b2d371ff86501240c7282','501423418772fe69f94def7239c597659838247c548b2d371ff86501240c7282']
+NCAPPKEY = ['e4eff02aba5aff21b37afd86494953d7','e4eff02aba5aff21b37afd86494953d7']
+#NCREGURL = ['https://dswqabuv9k.execute-api.ap-south-1.amazonaws.com/dev/ncappsignup','http://localhost:8080/ncappsignup']
+NCREGURL = ['https://dswqabuv9k.execute-api.ap-south-1.amazonaws.com/dev/ncappauth','http://localhost:8080/ncappauth']
+#NCLOGINURL = ['https://nawalcube.com/authorise/auth','http://localhost:4200/authorise/auth']
+NCLOGINURL = ['https://dswqabuv9k.execute-api.ap-south-1.amazonaws.com/dev/ncappauth','http://localhost:8080/ncappauth']
+NCSIGNUPDATAFETCHURL = ['https://dswqabuv9k.execute-api.ap-south-1.amazonaws.com/dev/ncappfetchfrmtkn','http://localhost:8080/ncappfetchfrmtkn']
+NCPASSURL = ['https://dswqabuv9k.execute-api.ap-south-1.amazonaws.com/dev/appauth','http://localhost:8080/appauth']
+MYHOMEPG = ['http://localhost:4201','http://localhost:4201']
+MYREDIRURI = ['http://localhost:4201/noti/nc','http://localhost:4201/noti/nc']
+MYNOTIPG = ["http://localhost:4201/noti","http://localhost:4201/noti"]
+AUTOAUTHAPPS = [["NAWALCUBE"],["NAWALCUBE"]]
+'''
+https://dswqabuv9k.execute-api.ap-south-1.amazonaws.com/dev/ncappsignup?type=signup&appid=501423418772fe69f94def7239c597659838247c548b2d371ff86501240c7282&home=http://localhost:4201&redirecturi=http://localhost:4201/noti/nc
+http://localhost:4201/noti/nc?type=signup&regdata=401&msg=This%20is%20not%20a%20registered%20app
+'''
 
 FBSERVICEAC = {
   "type": "service_account",

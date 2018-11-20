@@ -67,7 +67,7 @@ def aclogin():
 
 
 def aclogin_common():
-    url = settings.NCLOGINURL[settings.LIVE]+'?request=code&appid='+settings.NCAPPID[settings.LIVE]+'&redirecturi='+settings.MYREDIRURI[settings.LIVE]
+    url = settings.NCLOGINURL[settings.LIVE]+'?type=code&appid='+settings.NCAPPID[settings.LIVE]+'&redirecturi='+settings.MYREDIRURI[settings.LIVE]
     print(url)
     repons = {'url':url}
     return 'success', repons
@@ -324,4 +324,4 @@ def aclogin_common():
             resps = make_response(jsonify(response), 400)
         
         return resps
-'''
+''' 

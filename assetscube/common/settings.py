@@ -1,9 +1,10 @@
-# LIVE = 0
-# UAT = 1
-LIVE = 1
+# AWSDEV = 0
+# LOCALHOST = 1
+LIVE = 0
+#https://e294sbftrc.execute-api.ap-south-1.amazonaws.com/acdev
 
-NCAPPID = ['501423418772fe69f94def7239c597659838247c548b2d371ff86501240c7282','501423418772fe69f94def7239c597659838247c548b2d371ff86501240c7282']
-NCAPPKEY = ['e4eff02aba5aff21b37afd86494953d7','e4eff02aba5aff21b37afd86494953d7']
+NCAPPID = ['eba50ba6a2f829618dc9e095888bf6ef2843d8c0a5bd5575ac019e163c65b32d','501423418772fe69f94def7239c597659838247c548b2d371ff86501240c7282']
+NCAPPKEY = ['6a63ceb218ba2fc2b9bd20862f2e2fa3','e4eff02aba5aff21b37afd86494953d7']
 #NCREGURL = ['https://dswqabuv9k.execute-api.ap-south-1.amazonaws.com/dev/ncappsignup','http://localhost:8080/ncappsignup']
 NCREGURL = ['https://dswqabuv9k.execute-api.ap-south-1.amazonaws.com/dev/ncappauth','http://localhost:8080/ncappauth']
 #NCLOGINURL = ['https://nawalcube.com/authorise/auth','http://localhost:4200/authorise/auth']

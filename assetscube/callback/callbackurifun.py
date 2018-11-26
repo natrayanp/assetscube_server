@@ -155,6 +155,18 @@ def ncclbk_singup_handler(callback_data):
         r = requests.post(settings.NCSIGNUPDATAFETCHURL[settings.LIVE], headers=headers, data=json.dumps(req_payload))
         nc_usr_data = json.loads(r.content.decode("utf-8") )
         print(json.loads(r.content.decode("utf-8")))
+        # Response we get:
+        #     Field Name         success                     fail
+        # -----------------------------------------------------------
+        #  {  
+        #    "userauthtkn":  new_userauthtkn,                BLANK
+        #     "tknexpiry":   usr_db_rec["tknexpiry"],        BLANK
+        #     "userid":      more_usr_db_rec["userid"],      BLANK
+        #     "username":    more_usr_db_rec["username"],    BLANK
+        #     "emailid":     more_usr_db_rec["sinupemail"],  BLANK
+        #     "status":      success                         fail
+        #     "msg":         BLANK                           fail message
+        #   }
         print('i see')
 
 

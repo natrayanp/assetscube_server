@@ -72,11 +72,17 @@ def callback():
         payload = request.get_json()
         print("payload 11111111")
         print(payload)
+        #payload
+        #{type: "signup", callbkfrm: "nawalcube", regdata: "a96f2d792641cd049c974e3c9e330f99", msg: "success"}
+       
         print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         entityid = request.headers.get("entityid", None)
         countryid = request.headers.get("countryid", None)
         payload["entityid"] = entityid
         payload["countryid"] = countryid 
+        #payload
+        #{type: "signup", callbkfrm: "nawalcube", regdata: "a96f2d792641cd049c974e3c9e330f99", msg: "success", "entityid": "ac", countryid: "IN"}
+        
         res_status, res_to_send = callback_handler(payload)
         print(res_status, res_to_send)
         if res_status == 'success':
@@ -88,6 +94,10 @@ def callback():
         return resps    
 
 def callback_handler(callback_data):
+    #Common handler to handle any callback from oauth
+    #callback_data
+    #{type: "signup", callbkfrm: "nawalcube", regdata: "a96f2d792641cd049c974e3c9e330f99", msg: "success", "entityid": "ac", countryid: "IN"}
+
     print("inside callback_handler")
     print(callback_data)
     print(callback_data["callbkfrm"])
@@ -100,12 +110,20 @@ def callback_handler(callback_data):
     return  None, None
 
 def ncallbk_handler(callback_data):
+    #Common handler to handle any callback from nawalcube
+    #callback_data
+    #{type: "signup", callbkfrm: "nawalcube", regdata: "a96f2d792641cd049c974e3c9e330f99", msg: "success", "entityid": "ac", countryid: "IN"}
+
     if callback_data["type"] == "signup":
         return ncclbk_singup_handler(callback_data)
     elif callback_data["type"] == "code":
         return ncclbk_login_handler(callback_data)
 
 def ncclbk_singup_handler(callback_data):
+    # handler for nawalcube signup
+    #callback_data
+    #{type: "signup", callbkfrm: "nawalcube", regdata: "a96f2d792641cd049c974e3c9e330f99", msg: "success", "entityid": "ac", countryid: "IN"}
+
     print("inside ncclbk_singup_handler function")
     s = 0
     f = None
@@ -317,7 +335,7 @@ def save_usr_details(sav_usr):
         cur, s1, f1 = db.mydbfunc(con,cur,command)
         s, f, t= errhand.get_status(s, s1, f, f1, t, "no")
         s1, f1 = 0, None
-
+        print("end of ")
         if s > 0:
             s, f, t= errhand.get_status(s, 200, f, "SIGNUP userlogin insert failed", t, "no")
 
@@ -326,7 +344,7 @@ def save_usr_details(sav_usr):
     if s <= 0:
         command = cur.mogrify("""
                     INSERT INTO acusr.linkedapps (userid, lnk_app, lnk_userid, lnk_email,  lnkstatus, octime, lmtime, entityid, countryid) 
-                    VALUES (%s,%s,%s,%s,%s,%s,'L',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,%s,%s);
+                    VALUES (%s,%s,%s,%s,'L',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,%s,%s);
                     """,(sav_usr["uid"], sav_usr["nc_entity"], sav_usr["nc_usrid"], sav_usr["nc_email"],settings.INSTALLDATA[settings.LIVE]["entityid"],settings.INSTALLDATA[settings.LIVE]["countryid"],))
         print(command)
 
